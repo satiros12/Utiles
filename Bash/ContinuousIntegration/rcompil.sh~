@@ -15,8 +15,8 @@
 
 
 #CONSTANT_NAMES
-PROGAM_NAME="drcompil"
-TEMPORARY_FILE_NAME="/temp/.$PROGAM_NAME_" #.drcompil_<dir>.dat --> Deleted if the owner wants.
+PROGAM_NAME="rcompil"
+TEMPORARY_FILE_NAME="/temp/.${PROGAM_NAME}_" #.drcompil_<dir>.dat --> Deleted if the owner wants.
 CONFIGURATION_FILE_NAME="$PROGAM_NAME.conf" #Basic configuration file --> destination, head file, 
 EXCLUDE_FILE_NAME="exclude.conf" #Exclusion file --> grep regular expresions by line in order to exclude files from send.
 LOG="/var/log/${PROGAM_NAME}.log"  #Log file
@@ -40,6 +40,7 @@ SENDER_PROGRAM="" #Selected program for file sending.
 CONTROL_PROGRAM="" #Selected program for remote control.
 PWD="$(which pwd)"
 GREP="$(which grep)"
+STAT="$(which stat)"
 COMAND=""
 
 #GLOBAL_VARIABLES
@@ -49,6 +50,9 @@ HEAD="" #separated by space
 DESTINATION=""
 OPTIONS=""
 
+WATCH_PERIOD="1"
+
+LAST_MODIFICATION_TIME=""
 
 APPLY_SEND=1
 
@@ -199,6 +203,10 @@ if ! [ -f $GREP ]; then
 	loge "There is no GREP program."
 	exit 100
 fi
+if ! [ -f $STAT ]; then
+	loge "There is no STAT program."
+	exit 100
+fi
 if ! [ -f $SENDER_PROGRAM ]; then
 	loge "There is no SENDER_PROGRAM program."
 	exit 100
@@ -213,17 +221,31 @@ if ! [ -f $COMAND ]; then
 fi
 
 }
+
+function send_files_and_execute_comand
+{
+	#Here we will send files and then, execute the command. --- ONLY FOR CURRENT DIRECTORY
+	files_to_send=$(ls ${DIRECTORY})
+	for filter in $EXCLUDED_FILES; do
+		files_to_send="$(echo $files_to_send | grep -v $filter)" 2> LOG	
+	done
+	logi "Files to send $files_to_send"
+	$SENDER_PROGRAM $files_to_send $DESTINATION
+	logi "Command is executing in remote machine : $COMAND"
+	$CONTROL_PROGRAM $(echo $DESTINATION | cut -d ':' -f1) "$COMAND"
+}
 --------------------------------------------------------------------------------
 #CODE
 #1.Verify the arguments.
 #2.Verify the configuration files (3) and installed programs.
 #				--> If not exist, generate one.
 #				--> If user try to send without well configured service, send error to log and do nothing.
-#3.Save hash codes in a temporary file --> $TEMP/.$MYNAME_$(date)
+#3.Verify is exist the temporal file --> I
+#-NO--3.Save hash codes in a temporary file --> $TEMP/.$MYNAME_$(date)
 #4.Every 1 second do:
 
-#5.Verify hash of head files --> If nothing new --> wait more.
-#				     --> If some new, stop waiting.
+#5.Verify last head files modification time --> If nothing new --> wait more.
+#				            --> If some new, stop waiting.
 #6. If stop waiting, get new files, send to the server and execute remoteli the compilation.
 #7. Send results to last compilation file in Objective Directory of HEAD file.
 
@@ -246,9 +268,34 @@ else
 	DIRECTORY="$(pwd)"
 fi
 
+
+TEMPORARY_FILE_NAME="${TEMPORARY_FILE_NAME}$(echo $DIRECTORY | tr / _)"
+#--TEMPORARY FILE--	REQUEST 1
+if [ -f $TEMPORARY_FILE_NAME ]; then
+	if [ $(ps -e | grep $(cat $TEMPORARY_FILE_NAME)) != "" ]; then
+		loge "There is a demosn with that directory"
+		exit 300							#----- EXIT	
+	fi
+fi
+echo $$ > $TEMPORARY_FILE_NAME
+
 #--CONFIGURATION FILES--
 verify_configuration
 verify_exclusion
 verify_programs
 
-#--Save head file hash in to temporary file.
+#stat -c %x Hello.log
+LAST_MODIFICATION_TIME="$(stat -c %x ${DIRECTORY}/${HEAD})"
+logi "Starting with last modification in $LAST_MODIFICATION_TIME"
+while true; do
+sleep $WATCH_PERIOD
+
+if [ -f ${DIRECTORY}/${HEAD} ]; then
+	if [ "$LAST_MODIFICATION_TIME" != "$(stat -c %x ${DIRECTORY}/${HEAD})" ]; then
+		LAST_MODIFICATION_TIME="$(stat -c %x ${DIRECTORY}/${HEAD})"
+		logi "New modification $LAST_MODIFICATION_TIME -- sending and eecuting the command."
+		#send_files_and_execute_comand
+	fi
+fi
+
+done
