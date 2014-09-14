@@ -1,0 +1,98 @@
+#!/bin/bash
+#AUTOR: Stan
+#VERSION: 0.1
+#DATE: 14/09/2014
+#Continuous integration daemon.
+#
+#With LOG.
+
+#EXECUTION: drcompil.sh [<DIRECTORY>]
+#EXAMPLES:
+#1: drcompil.sh --> Will get current firectory with pwd.
+#2: drcompil.sh /mnt --> Will use the "/mnt" directory
+.--------------------------------------------------------------------------------
+#VARIABLES
+
+
+#CONSTANT_NAMES
+PROGAM_NAME="drcompil"
+TEMPORARY_FILE_NAME=".$PROGAM_NAME_" #.drcompil_<dir>.dat --> Deleted if the owner wants.
+CONFIGURATION_FILE_NAME="$PROGAM_NAME.conf" #Basic configuration file --> destination, head file, 
+ECLUDE_FILE_NAME="exclude.conf" #Exclusion file --> grep regular expresions by line in order to exclude files from send.
+LOG="/var/log/${PROGAM_NAME}.log"  #Log file
+
+#---CONFIGURATION_FILES
+WORD_PROGRAM_SENDING="PROG_SEMD="
+WORD_AVIABLE_PROGRAM_SENDING="scp" #List of aviable programs for file sending.
+WORD_PROGRAM_CONTROL="PROG_CONTROL="
+WORD_AVIABLE_PROGRAM_CONTROL="ssh" #List of aviable programs for remote control.
+
+WORD_DESTINATION="DEST="
+
+WORD_COMAND="COMAND="
+
+WORD_HEAD="HEAD="
+ 
+#PROGRAMS
+SSH="" #$(which ssh)
+SCP="" #$(which scp)
+PWD="$(which pwd)"
+GREP="$(which grep)"
+CAT="$(which cat)"
+COMAND=""
+
+#GLOBAL_VARIABLES
+DIRECTORY=""
+EXCLUDED_FILES="$TEMPORARY_FILE_NAME $CONFIGURATION_FILE_NAME $ECLUDE_FILE_NAME" #
+HEAD="" #separated by space
+DESTINATION=""
+SENDER_PROGRAM="" #Selected program for file sending.
+CONTROL_PROGRAM="" #Selected program for remote control.
+
+--------------------------------------------------------------------------------
+#FUNCTIONS
+function error_exit
+{		
+
+	if [ $# < 2 ]; then
+		case $1 in
+			1)
+				echo "[ERROR] Program argumnet, is not a directory" >> $LOG
+				exit 1
+				;;
+			*)
+				echo "[ERROR] "
+	else
+		exit 1
+	fi
+}
+
+
+
+
+--------------------------------------------------------------------------------
+#CODE
+#1.Verify the arguments.
+#2.Verify the configuration files (3) --> If not exist, generate one.
+#				 --> If user try to send without well configured service, send error to log amd do nothing.
+#3.Save hash codes in a temporary file --> $TEMP/.$MYNAME_$(date)
+#4.Every 1 second do:
+
+#5.Verify hash of head files --> If nothing new --> wait more.
+#				     --> If some new, stop waiting.
+#6. If stop waiting, get new files, send to the server and execute remoteli the compilation.
+#7. Send results to last compilation file in Objective Directory of HEAD file.
+
+#VERIFICATIONS
+#There is only one argument
+
+if [ $# > 0 ]; then
+	if [ -d $1 ]; then
+		DIRECTORY=$1
+	else
+		error_exit 1
+	fi
+else
+	DIRECTORY="$(pwd)"
+fi
+fi

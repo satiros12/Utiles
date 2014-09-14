@@ -1,0 +1,62 @@
+#!/bin/bash
+#Sistema de envío y recepción simples y de forma segura.
+
+#Intro
+echo "Welcome to send-recive tubed script on bash -- Made under OpenSuse 13.1 and SuSE 11"
+echo "Last version: 0.3.1 15/6/14"
+
+#Declarations
+Tube="$(which $0)"
+
+EnvDir="Envio"
+RecDir="Recepcion"
+
+SRC="$EnvDir"
+DST="$RecDir"
+
+Opt="$1"
+Host="$2"
+DestPort="$3"
+#Pre-verification
+cd ~
+if [ ! -d $EnvDir ]; then mkdir "$EnvDir"; echo "Maked $EnvDir"; fi
+if [ ! -d $RecDir ]; then mkdir "$RecDir"; echo "Maked $RecDir"; fi
+#if [ "$DestPort" != "" ]; then $DestPort="-P${DestPort}"; fi
+
+case $Opt in
+	s)
+		if [ "$DestPort" != "" ]; then DestPort="-P${DestPort}"; fi
+		scp $DestPort ~/${EnvDir}/* ${Host}:~/${RecDir}
+		;;
+	sc)
+		if [ "$DestPort" != "" ]; then DestPort="-p${DestPort}"; fi
+		cd ~/${SRC}
+		tar czf - ./* | ssh ${DestPort} $Host 'tar xzf - --directory=./Recepcion'
+		#${com}
+		;;
+	r)
+		if [ "$DestPort" != "" ]; then DestPort="-P${DestPort}"; fi
+		scp $DestPort ${Host}:~/${EnvDir}/* ~/${RecDir}
+		;;
+	rc)
+		if [ "$DestPort" != "" ]; then DestPort="-p${DestPort}"; fi
+		cd ~/${DST}
+		ssh ${DestPort} $Host 'cd ./Envio; tar czf - ./*' | tar xzf -
+		#${com}
+		;;
+	c|h)
+		echo "There are the next oprions s|sc | r|rc | c|h"
+		echo "s: send from ./Envio to Recepcion"
+		echo "r: get from host:~/Envio to ./Recepcion"
+		echo "s/r: are send files with scp"
+		echo "sc/rc: are send files with tar z with ssh pipe"
+		echo " Parameters:"
+		echo "	-> 1st: <Option>"
+		echo "	-> 2nd: [<user>@]<Host>"
+		echo "	-> 3st: [<Dst Port>]"
+		;;
+	*)
+		echo "Wrong option $Opt"
+		$Tube h
+esac	
+#com="tar zcf - ${SRC} | ssh test 'tar zxf - --directory=${DEST}'"
