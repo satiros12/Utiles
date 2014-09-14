@@ -1,0 +1,22 @@
+Autor: Stanislav	Version: 0.0.1		Fecha: 14/09/2014
+
+FICHERO DE ARRANQUE: rcompil.sh
+DEMONIO CONTROLADOR: drcompil.sh
+Comprovodar de ficheros en una carpeta y durante su modificacion se enviarán a un servidor destino y se podrán compilar.
+
+Los ficheros deben de estar en una carpeta concreta y el servicio debe de funcionar como un demonio.
+Al arrancar el demonio, se le indica la carpeta que debe de vigilar.
+En la carpeta, habrá ficheros de configuración del demonio.
+El demónio, leera esos ficheros siempre cuando vaya a enviar o ralizar alguna acción. 
+En el fichero de configuración, aparecerán distintas partes:
+	1. Configuración principal:
+		Programas a utilizar de envío y de ejecución remota --> Por defecto es el "scp" y "ssh".
+		Direccion + Directorio destino
+		Comando a ejecutar tras el envío en la carpeta de forma remóta
+		The head file --> File, after what change the daemon will perform that's functions.
+	2. Archivos y Directorios que no se enviarán:
+		Expresión regular de grep que se apliccarán en orden linea por linea.
+
+Future steps:
+	1. Include verification of files, if they changed or not in order to send them (by now, it is not necesary).
+	2. Multiply head files.

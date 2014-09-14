@@ -6,12 +6,10 @@
 #--------------------------!!!!!! NOTHING WAS TESTED !!!!!------------------------
 #With LOG.
 
-#EXECUTION: drcompil.sh <comand> [<DIRECTORY>]
-# COMMANDS:
-# start, stop, restart
+#EXECUTION: drcompil.sh [<DIRECTORY>]
 #EXAMPLES:
 #1: drcompil.sh --> Will get current firectory with pwd.
-#2: drcompil.sh start /mnt --> Will use the "/mnt" directory
+#2: drcompil.sh /mnt --> Will use the "/mnt" directory
 .--------------------------------------------------------------------------------
 #VARIABLES
 
@@ -38,11 +36,10 @@ WORD_OPTIONS="OPTIONS"
 WORD_HEAD="HEAD"
  
 #PROGRAMS
-SSH="" #$(which ssh)
-SCP="" #$(which scp)
+SENDER_PROGRAM="" #Selected program for file sending.
+CONTROL_PROGRAM="" #Selected program for remote control.
 PWD="$(which pwd)"
 GREP="$(which grep)"
-CAT="$(which cat)"
 COMAND=""
 
 #GLOBAL_VARIABLES
@@ -51,8 +48,7 @@ EXCLUDED_FILES="$TEMPORARY_FILE_NAME $CONFIGURATION_FILE_NAME $ECLUDE_FILE_NAME"
 HEAD="" #separated by space
 DESTINATION=""
 OPTIONS=""
-SENDER_PROGRAM="" #Selected program for file sending.
-CONTROL_PROGRAM="" #Selected program for remote control.
+
 
 APPLY_SEND=1
 
@@ -80,9 +76,10 @@ fi
 }
 
 function error_exit
-{		
-
-	if [ $# < 2 ]; then
+{	
+		
+	
+	if [ $# > 1 ]; then
 		case $1 in
 			1)
 				loge "Program argumnet, is not a directory"
@@ -129,10 +126,12 @@ else
     case $(echo $line | cut -d${CHARACTER_CUT} -f1) in
 	$WORD_PROGRAM_SENDING )
 		SENDER_PROGRAM="$(echo $line | cut -d${CHARACTER_CUT} -f2)"
+		SENDER_PROGRAM="$(which $SENDER_PROGRAM)"
 		logw "SENDER_PROGRAM = $SENDER_PROGRAM"
 	;;
 	$WORD_PROGRAM_CONTROL )
 		CONTROL_PROGRAM="$(echo $line | cut -d${CHARACTER_CUT} -f2)"
+		CONTROL_PROGRAM="$(which $CONTROL_PROGRAM)"
 		logw "CONTROL_PROGRAM = $CONTROL_PROGRAM"
 	;;	
 	$WORD_DESTINATION )
@@ -141,6 +140,7 @@ else
 	;;
 	$WORD_COMAND )
 		COMAND="$(echo $line | cut -d${CHARACTER_CUT} -f2)"
+		COMAND="$(which $COMAND)"
 		logw "COMAND = $COMAND"
 	;;
 	${WORD_OPTIONS} )
@@ -187,12 +187,38 @@ else
 fi;
 
 }
+
+function verify_programs
+{
+
+if ! [ -f $PWD ]; then
+	loge "There is no PWD program."
+	exit 100
+fi
+if ! [ -f $GREP ]; then
+	loge "There is no GREP program."
+	exit 100
+fi
+if ! [ -f $SENDER_PROGRAM ]; then
+	loge "There is no SENDER_PROGRAM program."
+	exit 100
+fi
+if ! [ -f $CONTROL_PROGRAM ]; then
+	loge "There is no CONTROL_PROGRAM program."
+	exit 100
+fi
+if ! [ -f $COMAND ]; then
+	loge "There is no PWD program."
+	exit 100
+fi
+
+}
 --------------------------------------------------------------------------------
 #CODE
 #1.Verify the arguments.
 #2.Verify the configuration files (3) and installed programs.
 #				--> If not exist, generate one.
-#				--> If user try to send without well configured service, send error to log amd do nothing.
+#				--> If user try to send without well configured service, send error to log and do nothing.
 #3.Save hash codes in a temporary file --> $TEMP/.$MYNAME_$(date)
 #4.Every 1 second do:
 
@@ -222,4 +248,7 @@ fi
 
 #--CONFIGURATION FILES--
 verify_configuration
+verify_exclusion
+verify_programs
 
+#--Save head file hash in to temporary file.
